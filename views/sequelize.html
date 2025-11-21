@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>회원 기능 + 시간표 관리</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    table { border: 1px solid black; border-collapse: collapse; width: 100%; }
+    table th, table td { border: 1px solid black; padding: 6px; text-align: center; }
+    .form-container { margin-bottom: 20px; }
+    .form-container fieldset { padding: 10px; }
+    .friend-container, .profile-container { margin-top: 20px; }
+    #profile-images img { width: 80px; margin: 5px; cursor: pointer; border-radius: 50%; border: 2px solid transparent; }
+    #profile-images img.selected { border-color: orange; }
+    #my-profile-img { width:100px; height:100px; border-radius:50%; border:1px solid #333; }
+  </style>
+</head>
+<body>
+  <!-- 로그인 폼 -->
+  <div class="form-container">
+    <h2>로그인</h2>
+    <form id="loginform">
+      <div>
+        <label>아이디</label>
+        <input type="text" id="login-username" name="username" required>
+      </div>
+      <div>
+        <label>비밀번호</label>
+        <input type="password" id="login-password" name="password" required>
+      </div>
+      <button type="submit">로그인</button>
+    </form>
+    <p id="login-message"></p>
+  </div>
+
+  <!-- 회원가입 폼 -->
+  <div class="form-container">
+    <h2>회원가입</h2>
+    <form id="user-form">
+      <fieldset>
+        <legend>사용자 등록</legend>
+        <div><input type="text" name="name" placeholder="이름" required></div>
+        <div><input type="text" name="studentId" placeholder="학번" required></div>
+        <div><input type="text" name="username" placeholder="아이디" required></div>
+        <div><input type="password" name="password" placeholder="비밀번호" required></div>
+        <div><input type="password" name="confirmPassword" placeholder="비밀번호 확인" required></div>
+        <button type="submit">회원가입</button>
+      </fieldset>
+    </form>
+  </div>
+
+  <!-- 사용자 목록 -->
+  <div>
+    <h2>사용자 목록</h2>
+    <table id="user-list">
+      <thead>
+        <tr><th>아이디</th><th>이름</th><th>학번</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- 친구 관리 -->
+  <div class="friend-container">
+    <h2>친구 관리</h2>
+    <input type="text" id="friend-name" placeholder="친구 이름">
+    <input type="text" id="friend-studentId" placeholder="친구 학번">
+    <button onclick="add_friend()">친구 추가</button>
+    <div id="my_friend_list_show"></div>
+  </div>
+
+  <!-- 프로필 이미지 -->
+  <div class="profile-container">
+    <h2>프로필 이미지 선택</h2>
+    <img id="my-profile-img" src="" alt="내 프로필">
+    <div id="profile-images"></div>
+  </div>
+
+  <!-- 시간표 찾기 -->
+  <div class="form-container">
+    <h2>시간표 찾기</h2>
+    <form id="timeform">
+      <fieldset>
+        <legend>시간표 검색</legend>
+        <input id="timename" type="text" placeholder="교과목명">
+        <button type="submit">찾기</button>
+      </fieldset>
+    </form>
+  </div>
+
+  <!-- 검색 결과 -->
+  <div>
+    <h2>시간표 검색 결과</h2>
+    <p id="search-count" style="font-weight:bold; color:green;"></p>
+    <table id="time-list">
+      <thead>
+        <tr>
+          <th>강좌번호</th>
+          <th>학점</th>
+          <th>교과목명</th>
+          <th>학년</th>
+          <th>대분류</th>
+          <th>시간</th>
+          <th>강의실</th>
+          <th>개설학과</th>
+          <th>교수명</th>
+          <th>강의언어</th>
+          <th>추가</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- 내 시간표 -->
+  <div class="form-container">
+    <h2>내 시간표</h2>
+    <table id="my-timetable">
+      <thead>
+        <tr>
+          <th>강좌번호</th>
+          <th>교과목명</th>
+          <th>교수명</th>
+          <th>시간</th>
+          <th>삭제</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- JS -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+  <script>
+    const API_HEADERS = () => ({ token: localStorage.getItem('token') });
+
+    // ================= 회원가입 =================
+    $('#user-form').submit(async e => {
+      e.preventDefault();
+      const form = e.target;
+      const { name, studentId, username, password, confirmPassword } = form;
+      if (password.value !== confirmPassword.value) return alert('비밀번호 불일치');
+      try {
+        await axios.post('/users/register', { 
+          name: name.value, studentId: studentId.value, username: username.value, 
+          password: password.value, confirmPassword: confirmPassword.value 
+        });
+        alert('회원가입 성공!');
+        getUserList();
+      } catch (err) { alert(err.response?.data?.message || '회원가입 오류'); }
+      form.reset();
+    });
+
+    // ================= 로그인 =================
+    $('#loginform').submit(async e => {
+      e.preventDefault();
+      try {
+        const res = await axios.post('/users/login', { 
+          username: $('#login-username').val(), 
+          password: $('#login-password').val() 
+        });
+        localStorage.setItem('token', res.data.token);
+        alert('로그인 성공!');
+        my_friend_show();
+        loadExampleImages();
+        loadMyProfile();
+        loadMyTimetable();
+      } catch (err) { alert(err.response?.data?.message || '로그인 실패'); }
+    });
+
+    // ================= 사용자 목록 =================
+    function getUserList() {
+      axios.get('/users').then(res => {
+        const tbody = $('#user-list tbody'); tbody.empty();
+        res.data.forEach(u => tbody.append(`<tr><td>${u.username}</td><td>${u.name}</td><td>${u.studentId}</td></tr>`));
+      });
+    }
+
+    // ================= 친구 기능 =================
+    function add_friend() {
+      const name = $('#friend-name').val();
+      const studentId = $('#friend-studentId').val();
+      if (!name || !studentId) return alert('친구 이름과 학번을 입력하세요.');
+
+      $.ajax({
+        type: "POST", url: "/users/add_friend", headers: API_HEADERS(), data: { name, studentId },
+        success: res => { alert(res); my_friend_show(); $('#friend-name').val(''); $('#friend-studentId').val(''); },
+        error: err => alert(err.response?.data || '친구 추가 오류')
+      });
+    }
+
+    function remove_friend(username) {
+      $.ajax({
+        type: "POST", url: "/users/remove_friend", headers: API_HEADERS(), data: { username },
+        success: res => { alert(res); my_friend_show(); },
+        error: err => alert(err.response?.data || '친구 삭제 오류')
+      });
+    }
+
+    function my_friend_show() {
+      $.ajax({
+        type: "GET", url: "/users/my_friend_list_show", headers: API_HEADERS(),
+        success: res => {
+          const div = $('#my_friend_list_show'); div.empty();
+          const list = res.my_friend_list_show;
+          if (!list?.length) return div.text('친구가 없습니다.');
+          list.forEach(u => div.append(
+            `<div><span style="color:orange">${u}</span> <button onclick="remove_friend('${u}')">삭제</button></div>`
+          ));
+        },
+        error: err => console.error(err)
+      });
+    }
+
+    // ================= 프로필 이미지 =================
+    async function loadExampleImages() {
+      const res = await axios.get('/users/example-images');
+      const container = document.getElementById('profile-images');
+      container.innerHTML = '';
+      res.data.forEach(img => {
+        const el = document.createElement('img');
+        el.src = img.url;
+        el.onclick = async () => {
+          container.querySelectorAll('img').forEach(i => i.classList.remove('selected'));
+          el.classList.add('selected');
+          await axios.post('/users/profile', { imageId: img.id }, { headers: API_HEADERS() });
+          loadMyProfile();
+        };
+        container.appendChild(el);
+      });
+    }
+
+    async function loadMyProfile() {
+      const res = await axios.get('/users/profile', { headers: API_HEADERS() });
+      document.getElementById('my-profile-img').src = res.data.profileImage;
+    }
+
+    // ================= 시간표 검색 =================
+    $('#timeform').submit(async e => {
+      e.preventDefault();
+      const timename = $('#timename').val().trim();
+      if (!timename) return alert('교과목명을 입력하세요');
+      try {
+        const res = await axios.get('/times/search', { params: { timename }, headers: API_HEADERS() });
+        const list = res.data, tbody = $('#time-list tbody');
+        $('#search-count').text(`총 ${list.length}개 과목이 검색되었습니다.`);
+        tbody.empty();
+        list.forEach(item => {
+          tbody.append(`
+            <tr>
+              <td>${item.number}</td><td>${item.credits}</td><td>${item.name}</td>
+              <td>${item.grade}</td><td>${item.category}</td><td>${item.time}</td>
+              <td>${item.location}</td><td>${item.department}</td>
+              <td>${item.professor}</td><td>${item.language}</td>
+              <td><button onclick="addCourse('${item.number}')">추가</button></td>
+            </tr>`);
+        });
+      } catch (err) { alert('검색 실패'); }
+    });
+
+    // ================= 내 시간표 =================
+    async function loadMyTimetable() {
+      try {
+        const res = await axios.get('/users/timetable', { headers: API_HEADERS() });
+        const list = res.data.timetable || [], tbody = $('#my-timetable tbody');
+        tbody.empty();
+        if (list.length === 0) return tbody.append('<tr><td colspan="5">추가된 과목이 없습니다.</td></tr>');
+        list.forEach(item => {
+          tbody.append(`
+            <tr>
+              <td>${item.number}</td><td>${item.name}</td><td>${item.professor}</td>
+              <td>${item.time}</td>
+              <td><button onclick="removeCourse('${item.number}')">삭제</button></td>
+            </tr>`);
+        });
+      } catch (err) { console.error(err); }
+    }
+
+    async function addCourse(number) {
+      try {
+        await axios.post('/users/timetable/add', { number }, { headers: API_HEADERS() });
+        alert('과목 추가됨'); loadMyTimetable();
+      } catch (err) { alert(err.response?.data?.message || '추가 실패'); }
+    }
+
+    async function removeCourse(number) {
+      try {
+        await axios.delete(`/users/timetable/${number}`, { headers: API_HEADERS() });
+        alert('과목 삭제됨'); loadMyTimetable();
+      } catch (err) { alert(err.response?.data?.message || '삭제 실패'); }
+    }
+
+    // ================= 초기화 =================
+    $(document).ready(() => {
+      getUserList();
+      my_friend_show();
+      loadExampleImages();
+      loadMyProfile();
+      loadMyTimetable();
+    });
+  </script>
+</body>
+</html>
