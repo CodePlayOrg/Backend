@@ -74,6 +74,63 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.get('/set_name', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+// ⭐️ 3. "Bearer " 부분을 제거하고 실제 토큰 값만 추출합니다.
+
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
+    const payload = jwt.verify(token, 'team2-key');
+
+    const user = await User.findOne({ where: { username: payload.username } });
+
+    if (!user) return res.status(404).send('사용자를 찾을 수 없습니다.');
+
+    res.json({ message: '별명이 성공적으로 반영되었습니다.', name: user.name });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('서버 오류');
+  }
+
+});
+
+router.post('/update_name', async (req, res) => {
+  try {
+    // ⭐️ 1. 'Authorization' 헤더에서 전체 토큰 문자열을 가져옵니다.
+    const authHeader = req.headers.authorization;
+    
+    // 2. newName은 req.body에서 newName이 아닌 nickname으로 받아야 합니다.
+    //    프론트엔드에서 nickname으로 보냈기 때문입니다.
+    const { nickname } = req.body; 
+
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+    if (!nickname || nickname.trim() === '') // 닉네임 유효성 검사
+      return res.status(400).json({ message: '새 별명을 입력해주세요.' });
+
+    // ⭐️ 3. "Bearer " 부분을 제거하고 실제 토큰 값만 추출합니다.
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
+
+    const payload = jwt.verify(token, 'team2-key');
+    const user = await User.findOne({ where: { username: payload.username } });
+    if (!user) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+
+    // user.name 대신 user.nickname 또는 user.name을 사용하세요.
+    // 프론트엔드에서 nickname으로 보내고 있으므로, 백엔드 모델에 맞춰 업데이트하세요.
+    user.name = nickname; // user 모델의 필드명에 맞게 'nickname' 대신 'name' 사용
+    await user.save();
+
+    res.json({ message: '별명이 성공적으로 변경되었습니다.', name: user.name });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: '서버 오류' });
+  }
+});
+
 // ================== 프로필 이미지 예시 가져오기 ==================
 router.get('/example-images', (req, res) => {
   const images = [1,2,3,4,5].map(i => ({
