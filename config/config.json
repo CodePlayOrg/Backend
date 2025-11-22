@@ -1,7 +1,7 @@
 {
   "development": {
-    "username": "root",
-    "password": "codeplay1124",
+    "username": "codeplay",
+    "password": "1124",
     "database": "codeplay",
     "host": "127.0.0.1",
     "dialect": "mysql"
