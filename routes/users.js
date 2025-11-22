@@ -251,9 +251,12 @@ router.post('/remove_friend', async (req, res) => {
 // 내 친구 목록 조회
 router.get('/my_friend_list_show', async (req, res) => {
   try {
-    const token = req.headers.token;
-    if (!token) return res.status(401).send('토큰이 없습니다.');
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+// ⭐️ 3. "Bearer " 부분을 제거하고 실제 토큰 값만 추출합니다.
 
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
     const payload = jwt.verify(token, 'team2-key');
     const user = await User.findOne({ where: { username: payload.username } });
     if (!user) return res.status(404).send('사용자를 찾을 수 없습니다.');
