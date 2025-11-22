@@ -143,8 +143,13 @@ router.get('/example-images', (req, res) => {
 // ================== 내 프로필 이미지 조회 ==================
 router.get('/profile', async (req, res) => {
   try {
-    const token = req.headers.token;
-    if (!token) return res.status(401).send('토큰이 없습니다.');
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+    // ⭐️ 3. "Bearer " 부분을 제거하고 실제 토큰 값만 추출합니다.
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
 
     const payload = jwt.verify(token, 'team2-key');
     const user = await User.findOne({ where: { username: payload.username } });
@@ -160,11 +165,17 @@ router.get('/profile', async (req, res) => {
 // ================== 프로필 이미지 변경 ==================
 router.post('/profile', async (req, res) => {
   try {
-    const token = req.headers.token;
     const { imageId } = req.body;
-    if (!token) return res.status(401).send('토큰이 없습니다.');
     if (!imageId || imageId < 1 || imageId > 5)
       return res.status(400).json({ error: 'Invalid imageId' });
+
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+    // ⭐️ 3. "Bearer " 부분을 제거하고 실제 토큰 값만 추출합니다.
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
 
     const payload = jwt.verify(token, 'team2-key');
     const user = await User.findOne({ where: { username: payload.username } });
@@ -184,8 +195,13 @@ router.post('/profile', async (req, res) => {
 router.post('/add_friend', async (req, res) => {
   try {
     const { name, studentId } = req.body;
-    const token = req.headers.token;
-    if (!token) return res.status(401).send('토큰이 없습니다.');
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+    // ⭐️ 3. "Bearer " 부분을 제거하고 실제 토큰 값만 추출합니다.
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
 
     const payload = jwt.verify(token, 'team2-key');
     const userA = await User.findOne({ where: { username: payload.username } });
@@ -222,8 +238,13 @@ router.post('/add_friend', async (req, res) => {
 router.post('/remove_friend', async (req, res) => {
   try {
     const { username: friendUsername } = req.body;
-    const token = req.headers.token;
-    if (!token) return res.status(401).send('토큰이 없습니다.');
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+    // ⭐️ 3. "Bearer " 부분을 제거하고 실제 토큰 값만 추출합니다.
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
 
     const payload = jwt.verify(token, 'team2-key');
     const userA = await User.findOne({ where: { username: payload.username } });
@@ -273,10 +294,15 @@ const jwtKey = 'team2-key';
 // 내 시간표 조회
 router.get('/timetable', async (req, res) => {
   try {
-    const token = req.headers.token;
-    if (!token) return res.status(401).json({ message: '토큰이 없습니다.' });
+    const authHeader = req.headers.authorization;
 
-    const payload = jwt.verify(token, jwtKey);
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+    // ⭐️ 3. "Bearer " 부분을 제거하고 실제 토큰 값만 추출합니다.
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
+
+    const payload = jwt.verify(token, 'team2-key');
     const user = await User.findOne({ where: { username: payload.username } });
     if (!user) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
 
@@ -300,10 +326,15 @@ function parseCourseTimes(timeStr) {
 
 router.post('/timetable/add', async (req, res) => {
   try {
-    const token = req.headers.token;
     const { number } = req.body;
+  const authHeader = req.headers.authorization;
 
-    if (!token) return res.status(401).json({ message: '토큰이 없습니다.' });
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+    // ⭐️ 3. "Bearer " 부분을 제거하고 실제 토큰 값만 추출합니다.
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
+
     if (!number) return res.status(400).json({ message: '강좌번호가 필요합니다.' });
 
     const payload = jwt.verify(token, jwtKey);
@@ -358,10 +389,15 @@ router.post('/timetable/add', async (req, res) => {
 // 과목 삭제
 router.delete('/timetable/:number', async (req, res) => {
   try {
-    const token = req.headers.token;
-    if (!token) return res.status(401).json({ message: '토큰이 없습니다.' });
+    const authHeader = req.headers.authorization;
 
-    const payload = jwt.verify(token, jwtKey);
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+    // ⭐️ 3. "Bearer " 부분을 제거하고 실제 토큰 값만 추출합니다.
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
+
+    const payload = jwt.verify(token, 'team2-key');
     const user = await User.findOne({ where: { username: payload.username } });
     if (!user) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
 
