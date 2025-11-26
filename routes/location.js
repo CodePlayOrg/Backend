@@ -1,5 +1,5 @@
 const express = require('express');
-const classLoc = require('../models/location');
+const ClassLoc = require('../models/location');
 const { Op } = require('sequelize');
 
 const router = express.Router();
@@ -16,7 +16,7 @@ router.get('/coordinates', async (req, res, next) => {
 
     // 2. BuildingCoordinates 테이블에서 해당 건물 이름을 찾아 좌표 조회
     // ⚠️ BuildingCoordinates는 사용자가 좌표를 저장한 실제 DB 모델명이어야 합니다.
-    const coordinateResult = await BuildingCoordinates.findOne({
+    const coordinateResult = await ClassLoc.findOne({
       where: {
         // 프론트엔드에서 이미 강의실 번호가 제거된 순수한 건물명만 넘어왔다고 가정
         buildingName: location 
