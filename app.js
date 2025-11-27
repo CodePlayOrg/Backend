@@ -7,6 +7,7 @@ const { sequelize } = require('./models');
 const indexRouter = require('./routes');       // index.js 라우터
 const usersRouter = require('./routes/users'); // users.js 라우터
 const timesRouter = require('./routes/times'); // times.js 라우터
+const locationsRouter = require('./routes/location'); // location.js라우터
 
 const app = express();
 app.set('port', process.env.PORT || 3001);
@@ -49,6 +50,7 @@ app.get('/timetable/search', (req, res) => {
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/times', timesRouter);
+app.use('/location', locationsRouter);
 
 // ================== 404 에러 처리 ==================
 app.use((req, res, next) => {
