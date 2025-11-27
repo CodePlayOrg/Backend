@@ -19,7 +19,7 @@ router.get('/coordinates', async (req, res, next) => {
     const coordinateResult = await ClassLoc.findOne({
       where: {
         // 프론트엔드에서 이미 강의실 번호가 제거된 순수한 건물명만 넘어왔다고 가정
-        buildingName: location 
+        location: location 
       },
       attributes: ['first', 'second'],
       raw: true
