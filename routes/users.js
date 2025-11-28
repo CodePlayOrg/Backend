@@ -196,7 +196,7 @@ router.post('/add_friend', async (req, res) => {
   try {
     const { name, studentId } = req.body;
     const authHeader = req.headers.authorization;
-
+    console.log('받은 데이터 : ', req.body);
     if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
     // ⭐️ 3. "Bearer " 부분을 제거하고 실제 토큰 값만 추출합니다.
     const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
