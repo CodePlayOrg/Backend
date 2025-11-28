@@ -46,7 +46,7 @@ app.get('/timetable/search', (req, res) => {
 // ================== 라우터 등록 ==================
 // router 객체를 정확히 export/import 해야 합니다!
 // usersRouter, indexRouter, timesRouter 모두 module.exports = router 형태여야 함
-app.use('/', indexRouter);
+app.use('/index', indexRouter);
 app.use('/users', usersRouter);
 app.use('/times', timesRouter);
 app.use('/location', locationsRouter);
