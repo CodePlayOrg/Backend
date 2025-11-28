@@ -205,10 +205,10 @@ router.post('/add_friend', async (req, res) => {
 
     const payload = jwt.verify(token, 'team2-key');
     const userA = await User.findOne({ where: { username: payload.username } });
-    if (!userA) return res.status(404).send('사용자를 찾을 수 없습니다.');
+    if (!userA) return res.status(405).send('사용자를 찾을 수 없습니다.');
 
     const userB = await User.findOne({ where: { name: name, studentId: studentId } });
-    if (!userB) return res.status(404).send('해당 이름+학번 사용자를 찾을 수 없습니다.');
+    if (!userB) return res.status(406).send('해당 이름+학번 사용자를 찾을 수 없습니다.');
 
     if (userA.username === userB.username) {
       return res.status(400).send('자기 자신은 친구로 추가할 수 없습니다.');
