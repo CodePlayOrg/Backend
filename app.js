@@ -26,7 +26,6 @@ sequelize.sync({ alter: true }) // 모델 변경 시 자동 반영
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use('/times', timesRouter);
 
 // ✅ 정적 파일 제공
 app.use(express.static(path.join(__dirname, 'public')));
