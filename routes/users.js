@@ -207,7 +207,7 @@ router.post('/add_friend', async (req, res) => {
     const userA = await User.findOne({ where: { username: payload.username } });
     if (!userA) return res.status(404).send('사용자를 찾을 수 없습니다.');
 
-    const userB = await User.findOne({ where: { name, studentId } });
+    const userB = await User.findOne({ where: { username: name, studentId: studentId } });
     if (!userB) return res.status(404).send('해당 이름+학번 사용자를 찾을 수 없습니다.');
 
     if (userA.username === userB.username) {
