@@ -2,7 +2,6 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
-const ClassTime = require('../models/time'); // 파일 상단으로 이동
 
 const router = express.Router();
 
