@@ -74,6 +74,29 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// ======== 로그아웃 ========
+router.post('/logout', (req, res) => {
+  try {
+    // Authorization 헤더에서 토큰 가져오기
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+
+    const token = authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
+
+    // 1️⃣단순 로그아웃: 클라이언트에서 토큰 삭제
+    // 서버에서는 별다른 처리를 하지 않고 메시지만 반환
+    res.json({ message: '로그아웃 성공. 클라이언트에서 토큰을 삭제해주세요.' });
+
+    // 2️⃣선택사항: 토큰 블랙리스트 관리
+    // ex) redis나 DB에 token 저장 후 검증 시 체크
+    // blacklistedTokens.push(token);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: '서버 오류' });
+  }
+});
+
 // ================== 이름(name) 변경 ==================
 router.post('/update_name', async (req, res) => {
   try {
@@ -309,10 +332,12 @@ const jwtKey = 'team2-key';
 // 내 시간표 조회
 router.get('/timetable', async (req, res) => {
   try {
-    const token = req.headers.token;
-    if (!token) return res.status(401).json({ message: '토큰이 없습니다.' });
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
 
-    const payload = jwt.verify(token, jwtKey);
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
+    const payload = jwt.verify(token, 'team2-key');
     const user = await User.findOne({ where: { username: payload.username } });
     if (!user) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
 
@@ -336,13 +361,13 @@ function parseCourseTimes(timeStr) {
 
 router.post('/timetable/add', async (req, res) => {
   try {
-    const token = req.headers.token;
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
     const { number } = req.body;
 
-    if (!token) return res.status(401).json({ message: '토큰이 없습니다.' });
-    if (!number) return res.status(400).json({ message: '강좌번호가 필요합니다.' });
-
-    const payload = jwt.verify(token, jwtKey);
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
+    const payload = jwt.verify(token, 'team2-key');
     const user = await User.findOne({ where: { username: payload.username } });
     if (!user) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
 
@@ -517,6 +542,31 @@ router.get('/user/status/:username', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server Error" });
+  }
+});
+// 특정 사용자(친구)의 시간표 조회 API
+router.get('/timetable/:username', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+
+    const token = authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
+
+    // 토큰 검증
+    jwt.verify(token, 'team2-key');
+
+    // URL 파라미터로 받은 username으로 사용자 조회
+    const user = await User.findOne({ where: { username: req.params.username } });
+
+    if (!user) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+
+    // 해당 사용자의 시간표 반환
+    res.json({ timetable: user.timetable || [] });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: '서버 오류' });
   }
 });
 
