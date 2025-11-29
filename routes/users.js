@@ -2,8 +2,106 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const ClassTime = require('../models/time'); // 파일 상단으로 이동
 
 const router = express.Router();
+
+// 1. 내 실시간 위치 업데이트 (App.tsx에서 호출)
+router.post('/location/update', async (req, res) => {
+  try {
+    const { latitude, longitude } = req.body;
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).send('No token');
+    
+    const token = authHeader.split(' ')[1];
+    const payload = jwt.verify(token, jwtKey);
+
+    // 내 좌표 업데이트
+    await User.update(
+      { latitude, longitude }, 
+      { where: { username: payload.username } }
+    );
+    
+    res.json({ message: 'Location updated' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// 2. 위치 공유 설정 토글 (FriendsScreen 스위치)
+router.post('/location/share', async (req, res) => {
+  try {
+    const { friendId, isShared } = req.body; // isShared: true(켜짐), false(꺼짐)
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).send('No token');
+    
+    const token = authHeader.split(' ')[1];
+    const payload = jwt.verify(token, jwtKey);
+
+    const user = await User.findOne({ where: { username: payload.username } });
+    
+    // 기존 허용 목록 가져오기 (JSON 배열)
+    let allowed = Array.isArray(user.allowed_viewers) ? [...user.allowed_viewers] : [];
+
+    if (isShared) {
+      // 켜짐: 목록에 없으면 추가
+      if (!allowed.includes(friendId)) allowed.push(friendId);
+    } else {
+      // 꺼짐: 목록에서 제거
+      allowed = allowed.filter(id => id !== friendId);
+    }
+
+    // DB 저장
+    await User.update(
+      { allowed_viewers: allowed }, 
+      { where: { username: payload.username } }
+    );
+    
+    res.json({ message: 'Share setting updated', allowed });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// 3. 친구의 실시간 위치 조회 (FriendsScreen '위치 보기' 버튼)
+router.get('/location/friend/:friendId', async (req, res) => {
+  try {
+    const friendId = req.params.friendId;
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).send('No token');
+    
+    const token = authHeader.split(' ')[1];
+    const payload = jwt.verify(token, jwtKey);
+    const myId = payload.username; // 요청하는 나
+
+    // 친구 정보 조회
+    const friend = await User.findOne({ where: { username: friendId } });
+    if (!friend) return res.status(404).json({ message: 'Friend not found' });
+
+    // 🚨 권한 체크: 친구의 allowed_viewers 목록에 내 ID가 있는지 확인
+    const allowedList = friend.allowed_viewers || [];
+    
+    if (!allowedList.includes(myId)) {
+      // 허용하지 않음 -> 위치 정보 안 줌
+      return res.json({ isAllowed: false, latitude: null, longitude: null });
+    }
+
+    // 허용함 -> 좌표 줌
+    res.json({ 
+      isAllowed: true, 
+      latitude: friend.latitude, 
+      longitude: friend.longitude,
+      name: friend.name 
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+});
+
 
 // ================== 회원 전체 조회 ==================
 router.route('/')
