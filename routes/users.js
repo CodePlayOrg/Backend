@@ -415,4 +415,111 @@ router.delete('/timetable/:number', async (req, res) => {
   }
 });
 
+
+// ================== 현재 수업 상태 조회 ==================
+const PERIODS = {
+  "1A": { start: "09:00", end: "09:50" },
+  "1B": { start: "09:30", end: "10:15" },
+  "2A": { start: "10:00", end: "10:50" },
+  "2B": { start: "10:30", end: "11:45" },
+  "3A": { start: "11:00", end: "11:50" },
+  "3B": { start: "11:30", end: "12:15" },
+  "4A": { start: "12:00", end: "12:50" },
+  "4B": { start: "12:30", end: "13:15" },
+  "5A": { start: "13:00", end: "13:50" },
+  "5B": { start: "13:30", end: "14:45" },
+  "6A": { start: "14:00", end: "14:50" },
+  "6B": { start: "14:30", end: "15:15" },
+  "7A": { start: "15:00", end: "15:50" },
+  "7B": { start: "15:30", end: "16:15" },
+  "8A": { start: "16:00", end: "16:50" },
+  "8B": { start: "16:30", end: "17:15" },
+  "9A": { start: "17:00", end: "17:50" },
+  "9B": { start: "17:30", end: "18:15" },
+  "10A": { start: "18:00", end: "18:50" },
+  "10B": { start: "18:25", end: "19:10" },
+  "11A": { start: "18:55", end: "19:40" },
+  "11B": { start: "19:20", end: "20:05" },
+  "12A": { start: "19:50", end: "20:35" },
+  "12B": { start: "20:15", end: "21:00" },
+  "13A": { start: "20:45", end: "21:30" },
+  "13B": { start: "21:10", end: "21:55" },
+  "14A": { start: "21:40", end: "22:25" },
+  "14B": { start: "22:05", end: "22:50" },
+};
+
+// timetable 내 "월 5B,6A,6B" 같은 문자열을 { day, period } 배열로 변환
+function parseCourseTimes(timetableItem) {
+  const result = [];
+  // 줄바꿈 단위로 split
+  const lines = timetableItem.time.split('\n');
+  for (const line of lines) {
+    const [dayKor, periodsStr] = line.split(' ');
+    if (!dayKor || !periodsStr) continue;
+    const periods = periodsStr.split(',');
+    periods.forEach(period => result.push({ day: dayKor, period }));
+  }
+  return result;
+}
+
+// 요일 한글 -> 숫자
+const DAY_MAP = { '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6 };
+
+// 수업 상태 확인
+function checkCurrentClassStatus(timetable) {
+  const now = new Date();
+  const currentDay = now.getDay(); // 0(일)~6(토)
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  for (const course of timetable) {
+    const times = parseCourseTimes(course);
+    for (const t of times) {
+      const courseDay = DAY_MAP[t.day];
+      const periodInfo = PERIODS[t.period];
+      if (!periodInfo || courseDay !== currentDay) continue;
+
+      const [sh, sm] = periodInfo.start.split(':').map(Number);
+      const [eh, em] = periodInfo.end.split(':').map(Number);
+      const startMinutes = sh * 60 + sm;
+      const endMinutes = eh * 60 + em;
+
+      if (currentMinutes >= startMinutes && currentMinutes < endMinutes) {
+        return {
+          status: 'active',
+          currentClass: course.name,
+          period: t.period,
+          start: periodInfo.start,
+          end: periodInfo.end
+        };
+      }
+    }
+  }
+
+  return { status: 'inactive', currentClass: null };
+}
+
+// ================== 현재 수업 상태 라우트 ==================
+router.get('/user/status/:username', async (req, res) => {
+  try {
+    const user = await User.findOne({ where: { username: req.params.username } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const statusInfo = checkCurrentClassStatus(user.timetable || []);
+
+    res.json({
+      username: user.username,
+      name: user.name,
+      status: statusInfo.status,
+      currentClass: statusInfo.currentClass,
+      period: statusInfo.period,
+      start: statusInfo.start,
+      end: statusInfo.end
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+
 module.exports = router;
