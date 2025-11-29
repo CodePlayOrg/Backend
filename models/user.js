@@ -34,6 +34,21 @@ class User extends Sequelize.Model {
         type: Sequelize.JSON, // 과목 목록을 JSON 배열로 저장
         defaultValue: [],
       },
+      // 1. 위도 (소수점이 길기 때문에 DOUBLE 사용)
+      latitude: {
+        type: Sequelize.DOUBLE, 
+        allowNull: true,
+      },
+      // 2. 경도
+      longitude: {
+        type: Sequelize.DOUBLE,
+        allowNull: true,
+      },
+      // 3. 내 위치를 볼 수 있게 허용한 친구 ID 목록
+      allowed_viewers: {
+        type: Sequelize.JSON, 
+        defaultValue: [], // 기본값은 빈 배열 (아무에게도 안 보여줌)
+      },
       created_at: {
         type: Sequelize.DATE,
         allowNull: false,
