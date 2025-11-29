@@ -520,5 +520,47 @@ router.get('/user/status/:username', async (req, res) => {
   }
 });
 
+// ================== 오늘 수업 조회 라우트 ==================
+router.get('/user/today-timetable/:username', async (req, res) => {
+  try {
+    const user = await User.findOne({ where: { username: req.params.username } });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const now = new Date();
+    const todayDay = now.getDay(); // 0(일) ~ 6(토)
+    
+    // timetable이 없으면 빈 배열
+    const timetable = user.timetable || [];
+
+    // 오늘 요일에 해당하는 수업만 필터링
+    const todayCourses = timetable.filter(course => {
+      const times = parseCourseTimes(course); // {day, period} 배열 반환
+      return times.some(t => DAY_MAP[t.day] === todayDay);
+    }).map(course => {
+      // 수업별로 오늘 해당되는 시간만 추출
+      const times = parseCourseTimes(course).filter(t => DAY_MAP[t.day] === todayDay);
+      return {
+        number: course.number,
+        name: course.name,
+        time: times.map(t => t.period), // 오늘 요일의 period만 배열로
+        credits: course.credits,
+        professor: course.professor,
+        location: course.location,
+        department: course.department
+      };
+    });
+
+    res.json({
+      username: user.username,
+      name: user.name,
+      date: now.toISOString().split('T')[0], // YYYY-MM-DD
+      todayCourses
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
 
 module.exports = router;
