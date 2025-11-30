@@ -516,10 +516,12 @@ router.post('/timetable/add', async (req, res) => {
 // 과목 삭제
 router.delete('/timetable/:number', async (req, res) => {
   try {
-    const token = req.headers.token;
-    if (!token) return res.status(401).json({ message: '토큰이 없습니다.' });
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
 
-    const payload = jwt.verify(token, jwtKey);
+    const token = authHeader.split(' ')[1]; // "Bearer [token]" -> [token]
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
+    const payload = jwt.verify(token, 'team2-key');
     const user = await User.findOne({ where: { username: payload.username } });
     if (!user) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
 
