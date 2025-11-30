@@ -71,35 +71,76 @@ app.use((err, req, res, next) => {
 app.listen(app.get('port'), () => {
   console.log(app.get('port'), '번 포트에서 대기 중');
 });
+const { WebSocketServer } = require("ws");
 
-const wss = new WebSocketServer({ port: 8001 })
+const wss = new WebSocketServer({ port: 8001 });
 
-// 모든 클라이언트에게 메시지 뿌리기
-wss.broadcast = (message) => {
-  wss.clients.forEach((client) => {
-    if (client.readyState === 1) { // 연결된 상태
-      client.send(message);
-    }
-  });
-};
+console.log("🟢 WebSocket 위치 서버 실행: 8001 포트");
+
+// 모든 친구의 최신 위치 저장
+// { username: { lat, lon } }
+const locations = {};
 
 wss.on("connection", (ws, request) => {
-  console.log(`새로운 유저 접속: ${request.socket.remoteAddress}`)
+  console.log("🟢 새로운 WebSocket 연결:", request.socket.remoteAddress);
 
-  ws.on("message", (data) => {
-    // 받은 데이터를 그대로 모든 클라이언트에게 전송
-    wss.broadcast(data.toString());
+  // 클라이언트 고유 이름(username)
+  ws.username = null;
+
+  // 클라이언트가 구독하는 친구 목록
+  ws.subscribedFriends = [];
+
+  // 🔵 클라이언트 메시지 처리
+  ws.on("message", (raw) => {
+    let msg;
+    try {
+      msg = JSON.parse(raw.toString());
+    } catch (e) {
+      console.log("❌ JSON 파싱 실패:", raw.toString());
+      return;
+    }
+
+    // (1) 접속 알림
+    if (msg.type === "join") {
+      ws.username = msg.username;
+      console.log(`👤 사용자 접속: ${ws.username}`);
+      return;
+    }
+
+    // (2) 구독 친구 저장
+    if (msg.type === "subscribe") {
+      ws.subscribedFriends = msg.friends || [];
+      console.log(`📌 ${ws.username} 구독 친구:`, ws.subscribedFriends);
+      return;
+    }
+
+    // (3) 위치 업데이트 처리
+    if (msg.type === "location") {
+      const { nickname, lat, lon } = msg;
+      if (!nickname) return;
+
+      // 최신 위치 저장
+      locations[nickname] = { lat, lon };
+
+      // 이 위치를 구독한 클라이언트에게만 전송
+      wss.clients.forEach((client) => {
+        if (client.readyState === 1) {
+          if (client.subscribedFriends.includes(nickname)) {
+            client.send(JSON.stringify({
+              type: "location",
+              nickname,
+              lat,
+              lon
+            }));
+          }
+        }
+      });
+
+      return;
+    }
   });
 
   ws.on("close", () => {
-    wss.broadcast(JSON.stringify({
-      type: "system",
-      message: `유저 한명이 떠났습니다. 현재 유저 ${wss.clients.size} 명`
-    }));
+    console.log(`🔴 WebSocket 연결 종료: ${ws.username}`);
   });
-
-  wss.broadcast(JSON.stringify({
-    type: "system",
-    message: `새로운 유저가 접속했습니다. 현재 유저 ${wss.clients.size} 명`
-  }));
-})
+});
