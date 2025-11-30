@@ -504,8 +504,10 @@ router.post('/timetable/add', async (req, res) => {
     });
 
     user.timetable = timetable;
-    await user.save();
-
+    await User.update(
+      { timetable: timetable }, 
+      { where: { username: user.username } }
+    );
     res.json({ message: '과목이 시간표에 추가되었습니다.', timetable });
   } catch (err) {
     console.error(err);
