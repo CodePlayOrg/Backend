@@ -472,13 +472,11 @@ router.post('/timetable/add', async (req, res) => {
     if (!course) return res.status(404).json({ message: '해당 강좌를 찾을 수 없습니다.' });
 
     const timetable = Array.isArray(user.timetable) ? [...user.timetable] : [];
-
+/*
     if (timetable.find(c => c.number === number)) {
       return res.status(400).json({ message: '이미 추가된 과목입니다.' });
-    }
-
-    const newTimes = parseCourseTimes(course.time);
-
+    }*/
+    /*
     for (const existing of timetable) {
       const existingTimes = parseCourseTimes(existing.time);
 
@@ -491,7 +489,7 @@ router.post('/timetable/add', async (req, res) => {
           message: `시간이 겹칩니다! (${existing.name} ↔ ${course.name})`
         });
       }
-    }
+    }*/
 
     timetable.push({
       number: course.number,
