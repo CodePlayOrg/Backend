@@ -378,7 +378,7 @@ router.get('/my_friend_list_show', async (req, res) => {
     res.json({ my_friend_list_show: user.friend_list || [] });
   } catch (err) { console.error(err); res.status(500).send('서버 오류'); }
 });
-*/
+
 router.get('/my_friend_list_show', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -420,7 +420,55 @@ router.get('/my_friend_list_show', async (req, res) => {
     res.status(500).send('서버 오류');
   }
 });
+*/
 
+router.get('/my_friend_list_show', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+
+    const token = authHeader.split(' ')[1];
+    const payload = jwt.verify(token, 'team2-key'); // jwtKey 변수명 확인
+
+    // 1. 내 정보 조회 (나의 allowed_viewers 확인)
+    const me = await User.findOne({ where: { username: payload.username } });
+    if (!me) return res.status(404).send('사용자를 찾을 수 없습니다.');
+
+    const friendIds = me.friend_list || [];
+
+    // ⭐️ 내가 위치 공유를 허용한 친구 목록 (DB에서 JSON 파싱)
+    let myAllowedList = me.allowed_viewers;
+    if (typeof myAllowedList === 'string') {
+        try { myAllowedList = JSON.parse(myAllowedList); } catch(e) { myAllowedList = []; }
+    }
+    if (!Array.isArray(myAllowedList)) myAllowedList = [];
+
+    if (friendIds.length === 0) return res.json({ my_friend_list_show: [] });
+
+    // 2. 친구들 정보 조회
+    const friendsDetails = await User.findAll({
+      where: { username: friendIds },
+      attributes: ['username', 'name', 'studentId'] 
+    });
+
+    // 3. 데이터 매핑
+    const result = friendsDetails.map(f => {
+      return {
+        username: f.username,
+        name: f.name,
+        studentId: f.studentId,
+        status: '수업 없음', 
+        // ⭐️ [핵심] 내 허용 목록에 이 친구가 있으면 true, 없으면 false
+        isLocationShared: myAllowedList.includes(f.username) 
+      };
+    });
+
+    res.json({ my_friend_list_show: result });
+  } catch (err) { 
+      console.error(err); 
+      res.status(500).send('서버 오류'); 
+  }
+});
 
 // ================== 회원별 시간표 관리 ==================
 const ClassTime = require('../models/time');
