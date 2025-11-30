@@ -514,7 +514,7 @@ router.post('/timetable/add', async (req, res) => {
 });
 
 // 과목 삭제
-router.delete('/timetable/:number', async (req, res) => {
+router.delete('/timetable/:number', async (req, res) => {/*
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
@@ -538,6 +538,48 @@ router.delete('/timetable/:number', async (req, res) => {
     res.json({ message: '과목이 삭제되었습니다.', timetable: updated });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: '서버 오류' });
+  }
+}*/
+
+  try {
+    // 1. ⭐️ 토큰 추출 방식 수정 (Headers.token -> Authorization)
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: '토큰이 없습니다.' });
+
+    const token = authHeader.split(' ')[1]; // "Bearer 토큰값"에서 토큰만 분리
+    if (!token) return res.status(401).json({ message: '토큰 형식이 올바르지 않습니다.' });
+
+    const payload = jwt.verify(token, 'team2-key'); // jwtKey 변수 확인 필요
+
+    const user = await User.findOne({ where: { username: payload.username } });
+    if (!user) return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+
+    const numberToDelete = req.params.number;
+
+    // 2. 시간표 데이터 안전하게 가져오기
+    let currentTimetable = user.timetable;
+    // 혹시 JSON이 문자열로 되어있을 경우를 대비
+    if (typeof currentTimetable === 'string') {
+        try { currentTimetable = JSON.parse(currentTimetable); } catch(e) { currentTimetable = []; }
+    }
+    if (!Array.isArray(currentTimetable)) currentTimetable = [];
+
+    // 3. ⭐️ 삭제 로직 수정 (타입 일치 시키기)
+    // String()으로 둘 다 문자열로 변환해서 비교해야 정확히 삭제됨
+    const updatedTimetable = currentTimetable.filter(c => String(c.number) !== String(numberToDelete));
+
+
+    // 4. DB 업데이트
+    await User.update(
+      { timetable: updatedTimetable }, 
+      { where: { username: user.username } }
+    );
+
+    res.json({ message: '과목이 삭제되었습니다.', timetable: updatedTimetable });
+
+  } catch (err) {
+    console.error("🔥삭제 에러:", err);
     res.status(500).json({ message: '서버 오류' });
   }
 });
