@@ -567,8 +567,16 @@ router.delete('/timetable/:number', async (req, res) => {/*
 
     // 3. ⭐️ 삭제 로직 수정 (타입 일치 시키기)
     // String()으로 둘 다 문자열로 변환해서 비교해야 정확히 삭제됨
-    const updatedTimetable = currentTimetable.filter(c => String(c.number) !== String(numberToDelete));
-
+    const updatedTimetable = currentTimetable.filter(c => {
+        // c가 null이거나 undefined면 건너뜀 (서버 다운 방지)
+        if (!c) return false; 
+        
+        // c.number가 없으면 c.id를 쓸 수도 있으니 둘 다 체크 (Legacy 데이터 호환)
+        const cNumber = c.number !== undefined ? c.number : c.id;
+        
+        // 둘 다 문자열로 바꿔서 비교
+        return String(cNumber) !== String(numberToDelete);
+    });
 
     // 4. DB 업데이트
     await User.update(
