@@ -457,11 +457,12 @@ router.get('/my_friend_list_show', async (req, res) => {
 
     // 3. 데이터 매핑
     const result = friendsDetails.map(f => {
+      const statusInfo = checkCurrentClassStatus(f.timetable || []);
       return {
         username: f.username,
         name: f.name,
         studentId: f.studentId,
-        status: '수업 없음', 
+        status: statusInfo.status === 'active' ? '수업 중' : '수업 없음',
         // ⭐️ [핵심] 내 허용 목록에 이 친구가 있으면 true, 없으면 false
         isLocationShared: myAllowedList.includes(f.username) 
       };
