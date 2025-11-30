@@ -529,7 +529,7 @@ router.delete('/timetable/:number', async (req, res) => {
 
     user.timetable = updated;
     await User.update(
-      { timetable: timetable }, 
+      { timetable: updated }, 
       { where: { username: user.username } }
     );
 
